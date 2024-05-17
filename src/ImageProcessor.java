@@ -2,6 +2,10 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ImageProcessor {
    private BufferedImage image;
@@ -32,6 +36,41 @@ public class ImageProcessor {
            }
        }
    }
+
+    public void increaseBrightnessWithThreads(int constant) throws InterruptedException {
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        List<Thread> threads = new ArrayList<>();
+        int chunkSize = image.getHeight()/numThreads;
+        for(int i=0; i<numThreads; ++i) {
+            int start =i*chunkSize;
+            int end = (i == numThreads-1) ? image.getHeight() : start + chunkSize;
+//            If the number of rows is not evenly divided by the number of threads,
+//            the last chuck may be shorter or longer than expected, so if the loop reaches
+//            the penultimate thread, 'end' returns 'image.getHeight()', the bottom border of the image
+            threads.add(new Thread(() -> {
+                for (int x = 0; x < image.getWidth(); ++x) {
+                    for (int y = start; y < end; ++y) {
+                        int pixelRGB = image.getRGB(x, y);
+                        increaseBrightnessOfPixel(pixelRGB, constant);
+                        int rgb = increaseBrightnessOfPixel(pixelRGB, constant);
+                        image.setRGB(x, y, rgb);
+                    }
+                }
+            }
+            ));
+//            Or I could create new class 'SetBrightnessWorker' implementing the 'Runnable' interface,
+//            that contains method 'run()' ,and pass its object to the 'Thread' constructor, instead of
+//            writing everything in lambda expression.
+            threads.get(i).start();
+        }
+        for(int i=0; i<threads.size(); ++i) {
+            threads.get(i).join();
+        }
+//        The idea behind multithreading is to allow multiple threads to execute at the same time,
+//        thereby reducing the overall execution time of a task. To do this,
+//        you have to start all the threads and then wait for them to complete(join).
+    }
+
    private int increaseBrightnessOfPixel(int pixelRGB, int constant ){
        int mask = 0xff;//255 in hex
        int blue = pixelRGB & mask;
