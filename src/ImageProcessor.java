@@ -16,7 +16,7 @@ public class ImageProcessor {
            image = ImageIO.read(inputFile);
            System.out.println("Image uploaded :)");
        } catch (IOException e) {
-           e.printStackTrace();;
+           e.printStackTrace();
        }
    }
    public void saveImage(String path, String formatImage){
@@ -25,9 +25,10 @@ public class ImageProcessor {
            ImageIO.write(image, formatImage, outputFile);
            System.out.println("Image saved :)");
        } catch (IOException e) {
-           e.printStackTrace();;
+           e.printStackTrace();
        }
    }
+
    public void increaseBrightness(int constant){
        for(int x = 0; x<image.getWidth(); ++x){
            for(int y = 0; y<image.getHeight(); ++y){
@@ -65,8 +66,8 @@ public class ImageProcessor {
         }
 
         try {
-            for(int i=0; i<threads.size(); ++i) {
-                threads.get(i).join();
+            for (Thread thread : threads) {
+                thread.join();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -107,29 +108,77 @@ public class ImageProcessor {
         }
     }
 
-   private int increaseBrightnessOfPixel(int pixelRGB, int constant ){
-       int mask = 0xff;//255 in hex
-       int blue = pixelRGB & mask;
-       int green = (pixelRGB >> 8) & mask;
-       int red = (pixelRGB >> 16) & mask;
-       int alpha = (pixelRGB >> 24) & mask;
+    private int increaseBrightnessOfPixel(int pixelRGB, int constant ){
+        int mask = 0xff;//255 in hex
+        int blue = pixelRGB & mask;
+        int green = (pixelRGB >> 8) & mask;
+        int red = (pixelRGB >> 16) & mask;
+        int alpha = (pixelRGB >> 24) & mask;
 //       Since image_bigger uses  an alpha component, I have to add an alpha,
 //          but if I only had an image everything would be fine ,
 //          since the image doesn't contain that component.
 //       Alpha component  is transparency  in  ARGB.
 //       Alpha  gets the last remaining 8 bits.
-       blue = increaseColor(blue,constant);
-       green = increaseColor(green,constant);
-       red = increaseColor(red,constant);
+        blue = increaseColor(blue,constant);
+        green = increaseColor(green,constant);
+        red = increaseColor(red,constant);
 //       or (= clamp(double value, double min, double max) ) instead of new method.
 //       clamp method from Math, which clamps the value to fit between min and max.
-       int rgb =  blue | (green << 8) | (red << 16) | (alpha<<24) ;
+        int rgb =  blue | (green << 8) | (red << 16) | (alpha<<24) ;
 //       or  = blue + (green << 8) + (red << 16) + (alpha<<24)
-       return rgb;
-   }
-   private int increaseColor(int color,int constant){
-       color +=constant;
-       if (color>255) return 255;
-       return  color;
-   }
+        return rgb;
+    }
+    private int increaseColor(int color,int constant){
+        color +=constant;
+        if (color>255) return 255;
+        return  color;
+    }
+    public List<Integer> getImageHistogramChannel(String colorRGB){
+        List<Integer> listPixels = new ArrayList<>();
+//       = Collections.synchronizedList(new ArrayList<>());
+//        This is a better solution because the method will be more productive.
+
+//        ArrayList, it is not thread-safe by nature, that is, multiple threads can modify
+//        the ArrayList at the same time(so I use synchronized below), which can cause the program to malfunction
+//        ( for example, throw an ArrayIndexOutOfBoundsException ).
+//
+//        Using Collections.synchronizedList turns an ArrayList into a thread-safe list,
+//        where all operations modifying the list are synchronized.
+//        This means that only one thread can modify the list at any given time.
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        int chunkSize = image.getHeight()/numThreads;
+        for(int i = 0; i<numThreads; ++i){
+            int start = i*chunkSize;
+            int end = (i == numThreads-1) ?image.getHeight() : start + chunkSize;
+            executorService.execute(() -> {
+                for(int x = 0; x<image.getWidth(); ++x){
+                    for(int y = start; y<end; ++y){
+                        synchronized (ImageProcessor.class) {
+                            int pixelRGB = image.getRGB(x, y);
+                            listPixels.add(getPixelByColor(pixelRGB, colorRGB));
+//                           In your case, we use 'synchronized' because multiple
+//                           threads are accessing a shared 'listPixels' at the same time.
+                        }
+                    }
+                }
+            });
+        }
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(20,TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return listPixels;
+    }
+    private  int getPixelByColor(int pixelRGB, String colorRGB){
+        int mask = 0xff;
+        switch (colorRGB) {
+            case "blue" : return pixelRGB & mask;
+            case "green" : return (pixelRGB >> 8) & mask;
+            case "red" : return (pixelRGB >> 16) & mask;
+            case null, default : throw new IllegalArgumentException("Inappropriate color RGB");
+        }
+    }
 }
