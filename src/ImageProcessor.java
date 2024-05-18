@@ -1,4 +1,8 @@
+import org.knowm.xchart.*;
+import org.knowm.xchart.style.Styler;
+
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ImageProcessor {
    private BufferedImage image;
+
    public void loadImage(String path){
        File inputFile = new File(path);
        try {
@@ -19,6 +24,7 @@ public class ImageProcessor {
            e.printStackTrace();
        }
    }
+
    public void saveImage(String path, String formatImage){
        File outputFile = new File(path);
        try {
@@ -64,7 +70,6 @@ public class ImageProcessor {
 //            writing everything in lambda expression.
             threads.get(i).start();
         }
-
         try {
             for (Thread thread : threads) {
                 thread.join();
@@ -72,13 +77,11 @@ public class ImageProcessor {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 //        The idea behind multithreading is to allow multiple threads to execute at the same time,
 //        thereby reducing the overall execution time of a task. To do this,
 //        you have to start all the threads and then wait for them to complete(join).
     }
 
-    //
     public void increaseBrightnessWithPoolOfThreads(int constant){
         int numThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
@@ -128,12 +131,14 @@ public class ImageProcessor {
 //       or  = blue + (green << 8) + (red << 16) + (alpha<<24)
         return rgb;
     }
+
     private int increaseColor(int color,int constant){
         color +=constant;
         if (color>255) return 255;
         return  color;
     }
-    public List<Integer> getImageHistogramChannel(String colorRGB){
+
+    public List<Integer> getHistogramOfImageChannel(String colorRGB){
         List<Integer> listPixels = new ArrayList<>();
 //       = Collections.synchronizedList(new ArrayList<>());
 //        This is a better solution because the method will be more productive.
@@ -166,12 +171,13 @@ public class ImageProcessor {
         }
         executorService.shutdown();
         try {
-            executorService.awaitTermination(20,TimeUnit.SECONDS);
+            executorService.awaitTermination(5,TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return listPixels;
     }
+
     private  int getPixelByColor(int pixelRGB, String colorRGB){
         int mask = 0xff;
         switch (colorRGB) {
@@ -181,4 +187,74 @@ public class ImageProcessor {
             case null, default : throw new IllegalArgumentException("Inappropriate color RGB");
         }
     }
+
+    public void createHistogramChartOfImageChannel(
+            List<Integer> imageHistogram, String path, String color) throws IOException {
+       
+       // Create Chart
+       CategoryChart chart = new CategoryChartBuilder()
+                .width(1920)
+                .height(1080)
+                .title("Image channel histogram")
+                .xAxisTitle("Pixel")
+                .yAxisTitle("Frequency pixels")
+                .build();
+
+        // Customize Chart
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);
+        Color[] sliceColors = switch (color) {
+            case "blue" -> new Color[]{new Color(0, 0, 255)};
+            case "green" -> new Color[]{new Color(0, 255, 0)};
+            case "red" -> new Color[]{new Color(255, 0, 0)};
+            case null, default -> throw new IllegalArgumentException("Inappropriate color RGB");
+        };
+        chart.getStyler().setSeriesColors(sliceColors);
+         //Series
+        Histogram histogram1 = new Histogram(imageHistogram,51,0,255);
+        chart.addSeries(color,histogram1.getxAxisData(),histogram1.getyAxisData());
+
+        // Save chart
+        BitmapEncoder.saveBitmap(chart, path, BitmapEncoder.BitmapFormat.PNG);
+    }
+    public void createChartMatrixOfImageHistogram(
+            List<Integer> imageHistogramBlue, List<Integer> imageHistogramGreen,
+            List<Integer> imageHistogramRed, String path) throws IOException {
+
+        XYChart chart = new XYChartBuilder()
+                .width(1920)
+                .height(1080)
+                .title("Image histogram")
+                .yAxisTitle("Pixel")
+                .build();
+        // Customize Chart
+        Color[] sliceColors = new Color[] {
+                new Color(0, 0, 255),
+                new Color(0, 255, 0),
+                new Color(255, 0, 0)
+        };
+        chart.getStyler().setSeriesColors(sliceColors);
+        chart.getStyler().setXAxisMin(0.0);
+        chart.getStyler().setXAxisMax(255.0);
+        chart.addSeries("BLUE",countingFrequency(imageHistogramBlue));
+        chart.addSeries("GREEN",countingFrequency(imageHistogramGreen));
+        chart.addSeries("RED",countingFrequency(imageHistogramRed));
+
+
+        BitmapEncoder.saveBitmap(chart, path, BitmapEncoder.BitmapFormat.PNG);
+    }
+    private List<Integer> countingFrequency(List<Integer> imageHistogram) {
+        int[] frequency = new int[256];
+
+        for (int value : imageHistogram) {
+            frequency[value]++;
+        }
+
+        List<Integer> frequencyPixels = new ArrayList<>();
+        for (int count : frequency) {
+            frequencyPixels.add(count);
+        }
+
+        return frequencyPixels;
+    }
+
 }

@@ -1,29 +1,20 @@
+import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 public class Main {
-    public static void main(String[] args)  {
+    public static void main(String[] args) throws IOException {
         ImageProcessor ip = new ImageProcessor();
         ip.loadImage("image.png");
 
-        long startTime1 = System.currentTimeMillis();
-        List<Integer> listRed = ip.getImageHistogramChannel("red");
-        long stopTime1 = System.currentTimeMillis();
+        List<Integer> listRed = ip.getHistogramOfImageChannel("red");
+        List<Integer> listGreen = ip.getHistogramOfImageChannel("green");
+        List<Integer> listBlue = ip.getHistogramOfImageChannel("blue");
 
-        long startTime2 = System.currentTimeMillis();
-         List<Integer> listBlue = ip.getImageHistogramChannel("blue");
-        long stopTime2 = System.currentTimeMillis();
+        ip.createHistogramChartOfImageChannel(listRed,"Histogram_Red_Channel","red");
+        ip.createHistogramChartOfImageChannel(listGreen,"Histogram_Green_Channel","green");
+        ip.createHistogramChartOfImageChannel(listBlue,"Histogram_Blue_Channel","blue");
 
-        long startTime3 = System.currentTimeMillis();
-        List<Integer> listGreen = ip.getImageHistogramChannel("green");
-        long stopTime3 = System.currentTimeMillis();
-
-        System.out.println(String.format(Locale.ENGLISH,
-                "Without threads: %d", stopTime1 - startTime1));
-        System.out.println(String.format(Locale.ENGLISH,
-                "With threads: %d",stopTime2 - startTime2));
-        System.out.println(String.format(Locale.ENGLISH,
-                "With pool of threads: %d",stopTime3 - startTime3));
+        ip.createChartMatrixOfImageHistogram(listBlue, listGreen,listRed,"Chart_Matrix_RGB");
 
 //        ip.saveImage("brighter_image.png", "png");
     }
