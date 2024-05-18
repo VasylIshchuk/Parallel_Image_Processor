@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ImageProcessor {
    private BufferedImage image;
@@ -15,7 +16,7 @@ public class ImageProcessor {
            image = ImageIO.read(inputFile);
            System.out.println("Image uploaded :)");
        } catch (IOException e) {
-           throw new RuntimeException(e);
+           e.printStackTrace();;
        }
    }
    public void saveImage(String path, String formatImage){
@@ -24,7 +25,7 @@ public class ImageProcessor {
            ImageIO.write(image, formatImage, outputFile);
            System.out.println("Image saved :)");
        } catch (IOException e) {
-           throw new RuntimeException(e);
+           e.printStackTrace();;
        }
    }
    public void increaseBrightness(int constant){
@@ -37,7 +38,7 @@ public class ImageProcessor {
        }
    }
 
-    public void increaseBrightnessWithThreads(int constant) throws InterruptedException {
+    public void increaseBrightnessWithThreads(int constant)  {
         int numThreads = Runtime.getRuntime().availableProcessors();
         List<Thread> threads = new ArrayList<>();
         int chunkSize = image.getHeight()/numThreads;
@@ -51,7 +52,6 @@ public class ImageProcessor {
                 for (int x = 0; x < image.getWidth(); ++x) {
                     for (int y = start; y < end; ++y) {
                         int pixelRGB = image.getRGB(x, y);
-                        increaseBrightnessOfPixel(pixelRGB, constant);
                         int rgb = increaseBrightnessOfPixel(pixelRGB, constant);
                         image.setRGB(x, y, rgb);
                     }
@@ -63,12 +63,48 @@ public class ImageProcessor {
 //            writing everything in lambda expression.
             threads.get(i).start();
         }
-        for(int i=0; i<threads.size(); ++i) {
-            threads.get(i).join();
+
+        try {
+            for(int i=0; i<threads.size(); ++i) {
+                threads.get(i).join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
 //        The idea behind multithreading is to allow multiple threads to execute at the same time,
 //        thereby reducing the overall execution time of a task. To do this,
 //        you have to start all the threads and then wait for them to complete(join).
+    }
+
+    //
+    public void increaseBrightnessWithPoolOfThreads(int constant){
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+//        Faster than if we just use threads
+        for (int i = 0; i < image.getHeight(); ++i) {
+            final int y = i;
+            executorService.execute(() -> {
+                for (int x = 0; x < image.getWidth(); ++x) {
+                    int pixelRGB = image.getRGB(x, y);
+                    increaseBrightnessOfPixel(pixelRGB, constant);
+                    int rgb = increaseBrightnessOfPixel(pixelRGB, constant);
+                    image.setRGB(x, y, rgb);
+                }
+            });
+//            For example, if 'numTreads' is 12 and image - 100 rows, so the first 12 threads
+//            will be served by 12 threads after completion, those threads will continue
+//            to serve the next 12 threads i etc.
+        }
+        executorService.shutdown();
+//        After calling 'shutdown()', the 'ExecutorService' will no longer accept new tasks.
+        try {
+            executorService.awaitTermination(5, TimeUnit.SECONDS);
+//            Is used to block the current thread until all tasks in 'ExecutorService'
+//            have completed or timed out.
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
    private int increaseBrightnessOfPixel(int pixelRGB, int constant ){
