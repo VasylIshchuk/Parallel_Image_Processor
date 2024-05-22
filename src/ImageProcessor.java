@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ImageProcessor {
-   private BufferedImage image;
+    private BufferedImage image;
 
    public void loadImage(String path){
        File inputFile = new File(path);
@@ -54,7 +54,7 @@ public class ImageProcessor {
             int end = (i == numThreads-1) ? image.getHeight() : start + chunkSize;
 //            If the number of rows is not evenly divided by the number of threads,
 //            the last chuck may be shorter or longer than expected, so if the loop reaches
-//            the penultimate thread, 'end' returns 'image.getHeight()', the bottom border of the image
+//            the last thread, 'end' returns 'image.getHeight()', the bottom border of the image
             threads.add(new Thread(() -> {
                 for (int x = 0; x < image.getWidth(); ++x) {
                     for (int y = start; y < end; ++y) {
@@ -130,14 +130,38 @@ public class ImageProcessor {
         int rgb =  blue | (green << 8) | (red << 16) | (alpha<<24) ;
 //       or  = blue + (green << 8) + (red << 16) + (alpha<<24)
         return rgb;
+
+//        OR
+
+//        Color color = new Color(image.getRGB(x,y));
+//        int blue = color.getBlue();
+//        int green = color.getGreen();
+//        int red = color.getRed();
+//        blue = increaseColor(blue,value);
+//        green = increaseColor(green,value);
+//        red = increaseColor(red,value);
+//        int rgb = blue | (green << 8) | (red << 16);
     }
 
     private int increaseColor(int color,int constant){
         color +=constant;
         if (color>255) return 255;
+        else if (color<0) return 0;
         return  color;
     }
-
+//    OR
+//
+//public class Clamp {
+//    static <T extends Comparable<T>> T clamp(T value, T min, T max) {
+//        if (value.compareTo(min) < 0) {
+//            return min;
+//        } else if (value.compareTo(max) > 0) {
+//            return max;
+//        } else {
+//            return value;
+//        }
+//    }
+//}
     public List<Integer> getHistogramOfImageChannel(String colorRGB){
         List<Integer> listPixels = new ArrayList<>();
 //       = Collections.synchronizedList(new ArrayList<>());
@@ -209,7 +233,7 @@ public class ImageProcessor {
             case null, default -> throw new IllegalArgumentException("Inappropriate color RGB");
         };
         chart.getStyler().setSeriesColors(sliceColors);
-         //Series
+        //Series
         Histogram histogram1 = new Histogram(imageHistogram,51,0,255);
         chart.addSeries(color,histogram1.getxAxisData(),histogram1.getyAxisData());
 
