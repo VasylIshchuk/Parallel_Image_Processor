@@ -1,3 +1,5 @@
+package image;
+
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 
@@ -137,9 +139,11 @@ public class ImageProcessor {
 //        int blue = color.getBlue();
 //        int green = color.getGreen();
 //        int red = color.getRed();
+//        int alpha = color.getAlpha();
 //        blue = increaseColor(blue,value);
 //        green = increaseColor(green,value);
 //        red = increaseColor(red,value);
+//        alpha = increaseColor(alpha,value);
 //        int rgb = blue | (green << 8) | (red << 16);
     }
 
