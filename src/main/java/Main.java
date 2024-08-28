@@ -18,6 +18,6 @@ public class Main {
 
         ip.createChartMatrixOfImageHistogram(listBlue, listGreen,listRed,"Chart_Matrix_RGB");
 
-//        ip.saveImage("brighter_image.png", "png");
+        //  ip.saveImage("brighter_image.png", "png");
     }
 }
