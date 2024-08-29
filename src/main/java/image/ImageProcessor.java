@@ -17,6 +17,13 @@ import java.util.concurrent.TimeUnit;
 public class ImageProcessor {
     private BufferedImage image;
 
+    public ImageProcessor() {
+    }
+    //  This is needed for the package.
+    public ImageProcessor(BufferedImage image) {
+        this.image = image;
+    }
+
     public void loadImage(String path) {
         File inputFile = new File(path);
         try {
