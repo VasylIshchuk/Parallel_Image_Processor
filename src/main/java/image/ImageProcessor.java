@@ -129,6 +129,7 @@ public class ImageProcessor {
         blue = increaseColor(blue, constant);
         green = increaseColor(green, constant);
         red = increaseColor(red, constant);
+        alpha = increaseColor(alpha,constant);
         //  or (= clamp(double value, double min, double max) ) instead of new method.
         //  clamp method from Math, which clamps the value to fit between min and max.
         int rgb = blue | (green << 8) | (red << 16) | (alpha << 24);
